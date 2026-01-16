@@ -1,9 +1,6 @@
 # 🧠 AI Resume Analyzer
 > *Master your career with the power of Artificial Intelligence.*
 
-[![Live Demo](https://img.shields.io/badge/demo-online-green.svg)](https://ai-resume-analyzer.onrender.com)
-> **[👉 Try the Live Demo Here](https://ai-resume-analyzer.onrender.com)**
-
 
 **AI Resume Analyzer** is a cutting-edge web application designed to help job seekers optimize their resumes for Applicant Tracking Systems (ATS) and modern recruitment standards. 
 
