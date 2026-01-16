@@ -1,0 +1,787 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze Resume - ResumeAI{% endblock %}
+
+{% block head %}
+<style>
+    /* Gradient Animation */
+    /* Cyber Grid Background Animation */
+    @keyframes grid-move {
+        0% {
+            transform: translateY(0);
+        }
+
+        100% {
+            transform: translateY(40px);
+        }
+    }
+
+    .cyber-grid {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        background-image:
+            linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
+        background-size: 40px 40px;
+        transform: perspective(500px) rotateX(60deg);
+        animation: grid-move 20s linear infinite;
+        opacity: 0.2;
+        mask-image: linear-gradient(to bottom, transparent 5%, black 40%, transparent 95%);
+    }
+
+    .glass-panel {
+        background: rgba(10, 15, 30, 0.7);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(99, 102, 241, 0.05);
+        border-radius: 24px;
+    }
+
+    .upload-zone {
+        border: 2px dashed rgba(99, 102, 241, 0.3);
+        background: rgba(99, 102, 241, 0.02);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-zone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        border-color: #6366f1;
+        box-shadow: 0 0 30px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(99, 102, 241, 0.1);
+        transform: translateY(-4px) scale(1.01);
+    }
+
+    .upload-zone:hover::before {
+        opacity: 1;
+    }
+
+    /* HUD Tech Elements */
+    .hud-line {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
+        margin: 1rem 0;
+    }
+
+    .hud-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .hud-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .hud-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+    }
+
+    .hud-glow {
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: #6366f1;
+        filter: blur(80px);
+        opacity: 0.15;
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    /* Strong Glow Effects */
+    @keyframes pulse-glow-blue {
+
+        0%,
+        100% {
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.2), inset 0 0 20px rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 50px rgba(99, 102, 241, 0.4), inset 0 0 30px rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.6);
+        }
+    }
+
+    @keyframes pulse-glow-purple {
+
+        0%,
+        100% {
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.2), inset 0 0 20px rgba(168, 85, 247, 0.1);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 50px rgba(168, 85, 247, 0.4), inset 0 0 30px rgba(168, 85, 247, 0.2);
+            border-color: rgba(168, 85, 247, 0.6);
+        }
+    }
+
+    .glow-effect-blue {
+        animation: pulse-glow-blue 3s infinite ease-in-out;
+    }
+
+    .glow-effect-purple {
+        animation: pulse-glow-purple 3s infinite ease-in-out;
+    }
+
+    /* Futuristic Scanner Styles */
+    #scanner-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 10, 20, 0.85);
+        backdrop-filter: blur(12px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        perspective: 1000px;
+    }
+
+    .scanner-card {
+        background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        box-shadow: 0 0 50px rgba(99, 102, 241, 0.2), inset 0 0 20px rgba(99, 102, 241, 0.1);
+        border-radius: 24px;
+        padding: 40px;
+        width: 100%;
+        max-width: 420px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        animation: card-entry 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes card-entry {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* Scanning Animation */
+    .scan-visual {
+        position: relative;
+        width: 200px;
+        height: 280px;
+        margin: 0 auto 30px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    /* Preview Content (Image or Canvas) */
+    .scan-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: filter 0.8s ease;
+        /* Smooth blur transition */
+        filter: blur(8px);
+        /* Start blurred */
+    }
+
+    .scan-beam {
+        position: absolute;
+        top: 0;
+        left: -10%;
+        width: 120%;
+        height: 4px;
+        background: #6366f1;
+        box-shadow: 0 0 15px #6366f1, 0 0 30px #818cf8;
+        animation: scan-move 2s ease-in-out infinite;
+        opacity: 0.8;
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    @keyframes scan-move {
+
+        0%,
+        100% {
+            top: 5%;
+            opacity: 0;
+        }
+
+        10% {
+            opacity: 1;
+        }
+
+        90% {
+            opacity: 1;
+        }
+
+        50% {
+            top: 95%;
+        }
+    }
+
+    /* Steps */
+    .scan-steps {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .step-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #94a3b8;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+        opacity: 0.5;
+    }
+
+    .step-item.active {
+        opacity: 1;
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .step-item.completed {
+        color: #10b981;
+        opacity: 1;
+    }
+
+    .step-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+
+    .step-item.active .step-icon {
+        border-color: #6366f1;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+    }
+
+    .step-item.completed .step-icon {
+        border-color: #10b981;
+        background: #10b981;
+        color: #0f172a;
+        animation: none;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .scanner-text {
+        font-family: 'Courier New', monospace;
+        color: #6366f1;
+        font-size: 0.8rem;
+        margin-top: 20px;
+        opacity: 0.8;
+    }
+</style>
+<!-- PDF.js for rendering PDF previews -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    // Set worker src for pdf.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+{% endblock %}
+
+{% block content %}
+<!-- Futuristic/AI Scanner Overlay -->
+<div id="scanner-overlay">
+    <div class="scanner-card">
+        <div class="scan-visual" id="scan-container">
+            <!-- Dynamic Content will be injected here (Canvas or Image) -->
+            <i class="fa-regular fa-file-lines" id="default-icon"></i>
+            <div class="scan-beam"></div>
+        </div>
+
+        <h3 class="text-xl font-bold text-white mb-6">AI Deep Scan In Progress</h3>
+
+        <div class="scan-steps">
+            <div class="step-item" id="step-0">
+                <div class="step-icon"><i class="fa-solid fa-spinner"></i></div>
+                <span>Establishing Secure Connection</span>
+            </div>
+            <div class="step-item" id="step-1">
+                <div class="step-icon"></div>
+                <span>Parsing Document Structure</span>
+            </div>
+            <div class="step-item" id="step-2">
+                <div class="step-icon"></div>
+                <span>Extracting Key Skills & Metrics</span>
+            </div>
+            <div class="step-item" id="step-3">
+                <div class="step-icon"></div>
+                <span>Comparing with Industry Standards</span>
+            </div>
+            <div class="step-item" id="step-4">
+                <div class="step-icon"></div>
+                <span>Generating Performance Report</span>
+            </div>
+        </div>
+
+        <div class="scanner-text">
+            > PROCESSSING DATA STREAM... <span class="animate-pulse">_</span>
+        </div>
+    </div>
+</div>
+
+<div class="cyber-grid"></div>
+<div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 lg:p-8 relative z-10">
+    <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+
+        <!-- Left Column: Upload -->
+        <div class="glass-panel p-8 relative overflow-hidden flex flex-col justify-center glow-effect-blue">
+            <div class="hud-glow top-0 left-0 bg-blue-500"></div>
+
+            <div class="relative z-10">
+                <h1 class="text-3xl font-bold mb-2">Upload Resume</h1>
+                <p class="text-gray-400 mb-8">Scan your resume against millions of data points.</p>
+
+                <form method="POST" enctype="multipart/form-data" id="upload-form">
+                    <!-- Drop Zone -->
+                    <div class="upload-zone rounded-2xl p-10 mb-6 text-center cursor-pointer group relative"
+                        id="drop-zone">
+                        <input type="file" name="resume" accept=".pdf,.docx,.doc" required id="file-input"
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+
+                        <div
+                            class="transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 mb-6 inline-block relative">
+                            <div
+                                class="absolute inset-0 bg-indigo-500 blur-xl opacity-20 group-hover:opacity-40 transition-opacity">
+                            </div>
+                            <div
+                                class="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mx-auto shadow-2xl">
+                                <i class="fa-solid fa-cloud-arrow-up text-4xl drop-shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                                    id="file-icon"></i>
+                            </div>
+                        </div>
+
+                        <h3 class="text-lg font-semibold text-white mb-1" id="file-label">Drag & Drop or Browse</h3>
+                        <p class="text-sm text-gray-500">PDF, DOCX formats supported</p>
+                    </div>
+
+                    <!-- Job Description Toggle -->
+                    <div class="mb-8">
+                        <button type="button" id="jd-toggle"
+                            class="flex items-center gap-2 text-gray-300 hover:text-white transition text-sm font-medium mb-3">
+                            <i class="fa-solid fa-briefcase"></i>
+                            <span>I have a Job Description (Optional)</span>
+                            <i class="fa-solid fa-chevron-down text-xs transition-transform" id="jd-arrow"></i>
+                        </button>
+
+                        <div id="jd-area" class="hidden transition-all duration-300 ease-in-out origin-top text-left">
+                            <textarea name="jd_text" rows="5"
+                                class="w-full bg-gray-900/50 border border-gray-700/50 rounded-xl p-4 text-sm text-gray-300 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition resize-none"
+                                placeholder="Paste the job requirements here for a targeted match analysis..."></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full py-5 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient hover:bg-right hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] text-white font-bold rounded-xl transition-all transform hover:-translate-y-1 relative overflow-hidden group border border-indigo-400/30">
+                        <div
+                            class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12">
+                        </div>
+                        <span class="relative z-10 flex items-center justify-center gap-2 text-lg tracking-wide">
+                            INITIATE DEEP SCAN <i class="fa-solid fa-bolt text-yellow-300 animate-pulse"></i>
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: HUD (Scanner Info) -->
+        <div class="glass-panel p-8 relative hidden lg:block overflow-hidden glow-effect-purple">
+            <div class="hud-glow bottom-0 right-0 bg-purple-500"></div>
+
+            <div class="relative z-10 h-full flex flex-col justify-between">
+                <div
+                    class="bg-gray-900/40 rounded-xl p-6 border border-cyan-500/50 mb-6 shadow-[0_0_40px_rgba(6,182,212,0.25)] hover:shadow-[0_0_70px_rgba(6,182,212,0.4)] transition-all duration-500 relative overflow-hidden group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    </div>
+                    <div
+                        class="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/20 rounded-full blur-2xl group-hover:bg-cyan-500/30 transition-all duration-700 animate-pulse">
+                    </div>
+
+                    <h2
+                        class="text-xs text-cyan-300 uppercase font-bold mb-6 tracking-widest flex items-center gap-2 relative z-10">
+                        <i class="fa-solid fa-microchip"></i> System Capabilities
+                    </h2>
+
+                    <div class="space-y-4">
+                        <!-- Item 1 -->
+                        <div
+                            class="hud-item hover:bg-indigo-500/10 cursor-default border border-transparent hover:border-indigo-500/30">
+                            <div
+                                class="hud-icon text-emerald-400 bg-emerald-400/10 shadow-[0_0_15px_rgba(52,211,153,0.2)]">
+                                <i class="fa-solid fa-robot"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white">AI Compatibility Check</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="h-1.5 w-12 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 w-[95%] animate-pulse"></div>
+                                    </div>
+                                    <span class="text-[10px] text-emerald-400">ACTIVE</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Item 2 -->
+                        <div
+                            class="hud-item hover:bg-indigo-500/10 cursor-default border border-transparent hover:border-indigo-500/30">
+                            <div class="hud-icon text-blue-400 bg-blue-400/10 shadow-[0_0_15px_rgba(96,165,250,0.2)]">
+                                <i class="fa-solid fa-microscope"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white">Impact Analysis</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="h-1.5 w-12 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-500 w-[88%] animate-pulse"
+                                            style="animation-delay: 0.2s"></div>
+                                    </div>
+                                    <span class="text-[10px] text-blue-400">READY</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Item 3 -->
+                        <div
+                            class="hud-item hover:bg-indigo-500/10 cursor-default border border-transparent hover:border-indigo-500/30">
+                            <div class="hud-icon text-amber-400 bg-amber-400/10 shadow-[0_0_15px_rgba(251,191,36,0.2)]">
+                                <i class="fa-solid fa-spell-check"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white">Grammar & Syntax</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="h-1.5 w-12 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-amber-500 w-[92%] animate-pulse"
+                                            style="animation-delay: 0.4s"></div>
+                                    </div>
+                                    <span class="text-[10px] text-amber-400">ONLINE</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Item 4 -->
+                        <div
+                            class="hud-item hover:bg-indigo-500/10 cursor-default border border-transparent hover:border-indigo-500/30">
+                            <div
+                                class="hud-icon text-purple-400 bg-purple-400/10 shadow-[0_0_15px_rgba(192,132,252,0.2)]">
+                                <i class="fa-solid fa-bullseye"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-white">JD Targeting</h4>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <div class="h-1.5 w-12 bg-gray-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-purple-500 w-[100%] animate-pulse"
+                                            style="animation-delay: 0.6s"></div>
+                                    </div>
+                                    <span class="text-[10px] text-purple-400">STANDBY</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Grading Scale Preview (Updated to Rings) -->
+                <div
+                    class="bg-gray-900/40 rounded-xl p-6 border border-indigo-500/50 mb-6 shadow-[0_0_40px_rgba(99,102,241,0.25)] hover:shadow-[0_0_70px_rgba(99,102,241,0.4)] transition-all duration-500 relative overflow-hidden group">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    </div>
+                    <div
+                        class="absolute -top-10 -right-10 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:bg-indigo-500/30 transition-all duration-700 animate-pulse">
+                    </div>
+
+                    <h5
+                        class="text-xs text-indigo-300 uppercase font-bold mb-4 tracking-widest flex items-center gap-2 relative z-10">
+                        <i class="fa-solid fa-ruler-combined text-indigo-400"></i> Scoring Calibration
+                    </h5>
+                    <div class="grid grid-cols-2 gap-4 relative z-10">
+                        <!-- Tier 1 -->
+                        <div
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-green-500/20">
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-green-500 blur-md opacity-30"></div>
+                                <div
+                                    class="w-8 h-8 rounded-full border-2 border-green-500 flex items-center justify-center bg-green-500/10 text-green-500 font-bold text-[10px] relative z-10 shadow-[0_0_10px_rgba(34,197,94,0.3)]">
+                                    90+</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-green-300 font-bold text-shadow-sm">ELITE</span>
+                                <span class="text-[10px] text-gray-500">Interview Ready</span>
+                            </div>
+                        </div>
+                        <!-- Tier 2 -->
+                        <div
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-blue-500/20">
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-blue-500 blur-md opacity-30"></div>
+                                <div
+                                    class="w-8 h-8 rounded-full border-2 border-blue-500 flex items-center justify-center bg-blue-500/10 text-blue-500 font-bold text-[10px] relative z-10 shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                                    75+</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-blue-300 font-bold text-shadow-sm">STRONG</span>
+                                <span class="text-[10px] text-gray-500">Contender</span>
+                            </div>
+                        </div>
+                        <!-- Tier 3 -->
+                        <div
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-yellow-500/20">
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-yellow-500 blur-md opacity-30"></div>
+                                <div
+                                    class="w-8 h-8 rounded-full border-2 border-yellow-500 flex items-center justify-center bg-yellow-500/10 text-yellow-500 font-bold text-[10px] relative z-10 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+                                    60+</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-yellow-300 font-bold text-shadow-sm">DECENT</span>
+                                <span class="text-[10px] text-gray-500">Needs Work</span>
+                            </div>
+                        </div>
+                        <!-- Tier 4 -->
+                        <div
+                            class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-red-500/20">
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-red-500 blur-md opacity-30"></div>
+                                <div
+                                    class="w-8 h-8 rounded-full border-2 border-red-500 flex items-center justify-center bg-red-500/10 text-red-500 font-bold text-[10px] relative z-10 shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                                    &lt;60</div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-xs text-red-300 font-bold text-shadow-sm">WEAK</span>
+                                <span class="text-[10px] text-gray-500">Optimization Reqd</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gray-900/40 rounded-xl p-6 border border-purple-500/50 relative overflow-hidden group shadow-[0_0_40px_rgba(168,85,247,0.25)] hover:shadow-[0_0_70px_rgba(168,85,247,0.4)] transition-shadow duration-500">
+                    <div
+                        class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10">
+                    </div>
+                    <div
+                        class="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all duration-700 animate-pulse">
+                    </div>
+
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-end mb-3">
+                            <span class="text-xs text-purple-300 font-bold tracking-wider uppercase"><i
+                                    class="fa-solid fa-server mr-2"></i>Global Systems</span>
+                            <span
+                                class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-purple-200 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">{{
+                                "{:,}".format(total_scans) }}</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 mb-2 uppercase tracking-wide">Total Resumes Processed
+                        </div>
+                        <div class="w-full bg-gray-800/80 h-2 rounded-full overflow-hidden border border-white/5">
+                            <div
+                                class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full w-[85%] rounded-full animate-gradient bg-[length:200%_auto] shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-3">
+                            <p class="text-[10px] text-green-400 font-mono flex items-center gap-1 mx-0 my-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> SYSTEM ONLINE
+                            </p>
+                            <span class="text-[10px] text-purple-400 font-mono">v2.4.0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Drag & Drop Visuals
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileLabel = document.getElementById('file-label');
+    const fileIcon = document.getElementById('file-icon');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+    });
+
+    // File Preview Logic (New)
+    let selectedFile = null;
+
+    fileInput.addEventListener('change', function (e) {
+        if (this.files[0]) {
+            const file = this.files[0];
+            selectedFile = file; // Store for previewing later
+            fileLabel.innerText = file.name;
+            fileLabel.classList.add('text-indigo-400');
+
+            if (file.name.endsWith('.pdf')) {
+                fileIcon.className = "fa-solid fa-file-pdf text-3xl text-red-400";
+            } else {
+                fileIcon.className = "fa-solid fa-file-word text-3xl text-blue-400";
+            }
+        }
+    });
+
+    // JD Toggle
+    const jdToggle = document.getElementById('jd-toggle');
+    const jdArea = document.getElementById('jd-area');
+    const jdArrow = document.getElementById('jd-arrow');
+
+    jdToggle.addEventListener('click', () => {
+        jdArea.classList.toggle('hidden');
+        jdArrow.style.transform = jdArea.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    });
+
+    // Futuristic Scanner Animation
+    const form = document.getElementById('upload-form');
+    const overlay = document.getElementById('scanner-overlay');
+    const scanContainer = document.getElementById('scan-container');
+    const defaultIcon = document.getElementById('default-icon');
+
+    // Function to render preview
+    async function renderPreview() {
+        if (!selectedFile) return;
+
+        // Clear default icon
+        if (defaultIcon) defaultIcon.style.display = 'none';
+
+        // Check file type
+        if (selectedFile.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.classList.add('scan-preview');
+            img.src = URL.createObjectURL(selectedFile);
+            scanContainer.prepend(img); // Add before the scan beam
+        }
+        else if (selectedFile.type === 'application/pdf') {
+            try {
+                const arrayBuffer = await selectedFile.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const page = await pdf.getPage(1);
+
+                const canvas = document.createElement('canvas');
+                canvas.classList.add('scan-preview');
+                const ctx = canvas.getContext('2d');
+
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+                scanContainer.prepend(canvas);
+            } catch (err) {
+                console.error("PDF Render Error:", err);
+                // Fallback to icon if render fails
+                if (defaultIcon) defaultIcon.style.display = 'block';
+            }
+        }
+        else {
+            // Keep default icon for other types
+            if (defaultIcon) defaultIcon.style.display = 'block';
+        }
+    }
+
+    form.addEventListener('submit', async function (e) {
+        // Prevent default submission so animation can play fully
+        e.preventDefault();
+
+        overlay.style.display = 'flex';
+        renderPreview(); // Try to render preview quickly
+
+        // Step Management & Blur Effect
+        const steps = 5;
+        let currentStep = 0;
+        const blurLevels = [8, 6, 4, 2, 0]; // Blur decreases per step
+
+        function updateSteps() {
+            // Mark previous as completed
+            if (currentStep > 0) {
+                const prev = document.getElementById(`step-${currentStep - 1}`);
+                if (prev) {
+                    prev.classList.remove('active');
+                    prev.classList.add('completed');
+                    prev.querySelector('.step-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+                }
+            }
+
+            if (currentStep >= steps) {
+                setTimeout(() => form.submit(), 800);
+                return;
+            }
+
+            // Activate current
+            const curr = document.getElementById(`step-${currentStep}`);
+            if (curr) {
+                curr.classList.add('active');
+            }
+
+            // Update Blur
+            const previewElement = scanContainer.querySelector('.scan-preview');
+            if (previewElement) {
+                previewElement.style.filter = `blur(${blurLevels[currentStep]}px)`;
+            }
+
+            currentStep++;
+            // Random delay for realism (Slower: 2s - 3.5s per step)
+            setTimeout(updateSteps, 2000 + Math.random() * 1500);
+        }
+
+        // Start animation immediately
+        updateSteps();
+    });
+</script>
+{% endblock %}

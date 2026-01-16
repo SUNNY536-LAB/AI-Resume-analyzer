@@ -1,0 +1,11 @@
+flask
+PyPDF2
+python-docx
+textstat
+scikit-learn
+spacy
+sentence-transformers
+language-tool-python
+pymongo
+gunicorn
+python-dotenv

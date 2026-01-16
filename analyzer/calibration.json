@@ -1,0 +1,9 @@
+{
+    "strictness_bias": 0.5934372906384485,
+    "semantic_weight": 49,
+    "keyword_weight": 20,
+    "grammar_weight": 15,
+    "impact_bonus": 10,
+    "learning_rate": 0.042572888554743775,
+    "total_feedback_count": 26
+}
