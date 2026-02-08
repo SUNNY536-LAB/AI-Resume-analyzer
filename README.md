@@ -68,4 +68,4 @@ python app.py
 Contributions are welcome! Please fork the repository and submit a Pull Request.
 
 ---
-*Built with ❤️ by [Your Name]*
+*Built with ❤️ by Sunny Yadav*
