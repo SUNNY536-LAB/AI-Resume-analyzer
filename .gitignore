@@ -12,3 +12,11 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Project
+uploads/
+.env
+__pycache__/
+*.pyc
+venv/
+env/
