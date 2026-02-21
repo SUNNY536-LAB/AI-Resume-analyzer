@@ -11,20 +11,8 @@ from dotenv import load_dotenv
 # Load Environment Variables
 load_dotenv()
 
-# --- MongoDB Setup ---
-try:
-    from pymongo import MongoClient
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-    client = MongoClient(mongo_uri)
-    db = client["resume_db"]
-    scans_collection = db["scans"]
-    print("✅ Connected to MongoDB.")
-except Exception as e:
-    print(f"⚠️ MongoDB Connection Failed: {e}")
-    scans_collection = None
-
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev_secret_key")
+app.secret_key = os.getenv("SECRET_KEY", "dev_secret_key_123")
 
 # Enable Jinja2 'do' extension for list manipulation in templates
 app.jinja_env.add_extension('jinja2.ext.do')
@@ -81,24 +69,6 @@ def analyze():
                 # 3. Analyze
                 result = compute_score(text, jd_text)
                 
-                # --- Persistence (MongoDB) ---
-                if scans_collection is not None:
-                    # Extract Contact Info for DB
-                    email = re.search(r'[\w\.-]+@[\w\.-]+', text)
-                    phone = re.search(r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}', text)
-                    
-                    scan_data = {
-                        "filename": filename,
-                        "candidate_email": email.group(0) if email else "N/A",
-                        "candidate_phone": phone.group(0) if phone else "N/A",
-                        "total_score": result['total_score'],
-                        "breakdown": result['breakdown'],
-                        "timestamp": datetime.now(),
-                        "has_jd": False
-                    }
-                    scans_collection.insert_one(scan_data)
-                    print(f"💾 Saved scan for {filename} to MongoDB.")
-
                 return render_template('result.html', r=result, filename=filename)
 
             except Exception as e:
@@ -108,24 +78,9 @@ def analyze():
                 flash(f'Error processing file: {str(e)}')
                 return redirect(request.url)
 
-    # Get total scans for display
-    total_scans = 12408 # Fallback/Default
-    if scans_collection is not None:
-        try:
-            total_scans = scans_collection.count_documents({})
-        except:
-            pass
-            
+    # Simulation of total scans for UI aesthetics
+    total_scans = 12408
     return render_template('upload.html', total_scans=total_scans)
-
-@app.route('/dashboard')
-def dashboard():
-    if scans_collection is None:
-        return render_template('dashboard.html', scans=[]) 
-    
-    # Fetch all scans, sorted by newest
-    scans = list(scans_collection.find().sort("timestamp", -1))
-    return render_template('dashboard.html', scans=scans)
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
@@ -140,8 +95,9 @@ def feedback():
 # --- Production Readiness: Preload Models ---
 # This ensures models are loaded when Gunicorn starts workers, not on the first request.
 from analyzer.resume_analyzer import ModelManager
-print("🚀 Starting AI Resume Analyzer...")
+print("🚀 Starting AI Resume Analyzer (Lite Mode)...")
 ModelManager.preload_models()
 
 if __name__=="__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
+
